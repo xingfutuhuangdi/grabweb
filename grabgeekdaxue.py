@@ -21,6 +21,7 @@ class State(Enum):
     GetUrl = 2
     ParseHtml = 3
     OverAutoer = 4
+    End = 5
 
 findTitle = re.compile(r'<h1>(.*?)</h1>',re.S)
 findEnd = re.compile(r'<div>(.*?)</div>',re.S)
@@ -55,64 +56,54 @@ def main():
     print('save path', savepath)
     url = 'https://geekdaxue.co/read/Clean-Architecture-zh/docs-ch2.md'
 
-    link = ""
+    #保存网址的队列
+    urls = []
     print('begin')
     print('current url:',driver.current_url)
 
     _state:State = State.Init
-    _check_button:WebElement = None
-    id:int = 69057
-    while(id <= 69097):
+    while(_state != State.End):
         try:
             print(_state)
             if _state == State.Init:
                 driver.get(url)
-                #time.sleep(5)  # 等待页面加载，根据需要调整时间
-                page_source = driver.page_source  # 获取页面源代码
-                #print(page_source)
-                #//*[@id='CZUq4']/div/label/input
                 _state = State.Wait
                     
             elif _state == State.Wait:
                 
-                element = driver.find_element(By.XPATH, '/html/body/div[1]/div[1]/div[2]/div[2]/div[1]/ul')
+                element:WebElement = driver.find_element(By.XPATH, '/html/body/div[1]/div[1]/div[2]/div[2]/div[1]/ul')
                 if element:
+                    links = element.find_elements(By.TAG_NAME, "a")
+                    for item in links:
+                        url_value = item.get_attribute("href")
+                        print("打开网址：", url_value)
+                        if url_value:
+                            urls.append(url_value)
+                
                     _state = State.OverAutoer
 
                 else:
                     print("等待广告")
             elif _state == State.OverAutoer:
                 print("通过广告")
-                button = driver.find_element(By.ID, str(id))
-                print(button)
-                print(button.text)
-                if button:
-                    Doc.add_heading(button.text, level = 0)
-                    #//*[@id="69081"]/a
-                    link = button.find_element(By.TAG_NAME, "a")
-                    href_value = link.get_attribute("href")
-                    print(f"Link URL: {href_value}")
-                    
-                    driver.get(href_value)
-                
-                _state = State.ParseHtml
-            elif _state == State.ParseHtml:
-                # title = driver.find_element(By.XPATH, '//*[@id="article-title"]')
-                # if title:
-                #     print(id, id)
-                #     print("title:", title.text)
-                #     Doc.add_heading(title.text, level = 0)
-                element = driver.find_element(By.XPATH, '/html/body/div[1]/div[1]/div[1]/div/div[2]/article')
-                if element:
-                    #print(element.text)
-                    Doc.add_paragraph(element.text)
-
-                #保存word
-                Doc.save(savepath)
-                #跳转到下一页
-                id = id + 1
-                _state = State.OverAutoer
-            
+                for item in urls:
+                    driver.get(item)
+                    while True:
+                        title = driver.find_element(By.XPATH, '//*[@id="article-title"]')
+                        if title:
+                            print("title:", title.text)
+                            Doc.add_heading(title.text, level = 0)
+                        element = driver.find_element(By.XPATH, '/html/body/div[1]/div[1]/div[1]/div/div[2]/article')
+                        if element:
+                            #print(element.text)
+                            Doc.add_paragraph(element.text)
+                            #保存word
+                            Doc.save(savepath)
+                            break
+                                        
+                _state = State.End
+            elif _state == State.ParseHtml:                
+                pass
             
         except requests.exceptions.RequestException as e:
             print(e)
