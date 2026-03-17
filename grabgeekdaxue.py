@@ -5,9 +5,11 @@ from selenium.common import exceptions
 from selenium.webdriver.remote.webdriver import WebElement
 import re
 import os
-from docx import Document
 import requests
 from enum import Enum
+
+#from docx import Document
+from spire.doc import *
 
 class State(Enum):
     Init = 0
@@ -23,7 +25,7 @@ findLink = re.compile(r'<a href="(.*?)">下一章</a>')
 
 def main():
     #word
-    Doc = Document()
+    document = Document()
 
     """创建基础驱动"""
     chrome_options = Options()
@@ -44,10 +46,7 @@ def main():
     # 初始化Chrome驱动
     driver = webdriver.Chrome(options=chrome_options)
 
-    # test
-    current_path = os.path.dirname(os.path.realpath(__file__))
-    savepath = current_path + "/架构整洁之道中文版 - Clean Architecture.docx"
-    print('save path', savepath)
+    # url
     url = 'https://geekdaxue.co/read/Clean-Architecture-zh/docs-ch2.md'
 
     #保存网址的队列
@@ -81,20 +80,20 @@ def main():
             elif _state == State.OverAutoer:
                 print("通过广告")
                 for item in urls:
+                    print("open url:", item)
                     driver.get(item)
-                    while True:
-                        title = driver.find_element(By.XPATH, '//*[@id="article-title"]')
-                        if title:
-                            print("title:", title.text)
-                            Doc.add_page_break()
-                            Doc.add_heading(title.text, level = 0)
-                        element = driver.find_element(By.XPATH, '/html/body/div[1]/div[1]/div[1]/div/div[2]/article')
-                        if element:
-                            #print(element.text)
-                            Doc.add_paragraph(element.text)
-                            #保存word
-                            Doc.save(savepath)
-                            break
+                    # add paragraph
+                    element = driver.find_element(By.XPATH, '/html/body/div[1]/div[1]/div[1]/div/div[2]/article')
+                    if element:
+                        section = document.AddSection()
+                        paragraph = section.AddParagraph()
+                        # 获取Web元素的HTML源码
+                        html_source = element.get_attribute("outerHTML")
+                        paragraph.AppendHTML(html_source)
+                        paragraph.AppendBreak(BreakType.PageBreak)
+                        
+                # 保存为 Word 2013 格式（.docx）
+                document.SaveToFile("架构整洁之道中文版 - Clean Architecture.docx", FileFormat.Docx2019)
                                         
                 _state = State.End
             elif _state == State.ParseHtml:                
