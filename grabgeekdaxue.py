@@ -3,14 +3,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.common import exceptions
 from selenium.webdriver.remote.webdriver import WebElement
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import time
 import re
 import os
-import random
-from bs4 import BeautifulSoup   #网页解析，数据获取
-from bs4.element import Tag,PageElement
 from docx import Document
 import requests
 from enum import Enum
@@ -92,6 +86,7 @@ def main():
                         title = driver.find_element(By.XPATH, '//*[@id="article-title"]')
                         if title:
                             print("title:", title.text)
+                            Doc.add_page_break()
                             Doc.add_heading(title.text, level = 0)
                         element = driver.find_element(By.XPATH, '/html/body/div[1]/div[1]/div[1]/div/div[2]/article')
                         if element:
